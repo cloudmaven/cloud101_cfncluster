@@ -1,5 +1,5 @@
 ---
-title: "Introduction to web frameworks"
+title: "cfncluster"
 teaching: 45
 exercises: 0
 questions:
