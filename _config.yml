@@ -7,14 +7,14 @@ encoding: utf-8
 kind: "lesson"
 
 # Overall title for pages.
-title: "Cloud 101 Webframework Tutorial"
+title: "Cloud 101 CFN Cluster Tutorial"
 
 # Repository URL (without trailing slash).
-repo: https://github.com/cloudmaven/cloud101_webframework
+repo: https://github.com/cloudmaven/cloud101_cfncluster
 
 # Root URL below username.github.io domain, with leading slash but no trailing slash.
 # For example, for 'https://geohackweek.github.io/lesson-example', use '/lesson-example'.
-root: "/cloud101_webframework"
+root: "/cloud101_cfncluster"
 
 # Contact email address.
 email: amandach@uw.edu
