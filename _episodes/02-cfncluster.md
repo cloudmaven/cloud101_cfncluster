@@ -1,25 +1,20 @@
 ---
-title: "AWS Elastic Beanstalk"
+title: "CFNCluster"
 teaching: 0
 exercises: 25
 questions:
-- "Can we break up the lesson into multiple parts?"
+- "What are the moving parts of cfncluster?"
 objectives:
-- "See that you can have more than one part for the lesson"
+- "Take a Fourier transform or other non-trivial task as a basis for running a cluster compute task"
 keypoints:
-- "We can add parts to the lesson, by adding more markdown files"
-- "You get the picture"
+- "Each cloud has its approach to cluster computing; this is a common example."
 ---
 ## Prerequisites
-- Please have anaconda or a working version of python installed 
-- We will be using PyCharm to deploy our Django web framework. Please make sure you have PyCharm installed. 
-- The web API code is available here: http://github.com/cloudmaven/web_api
+- Log on to AWS
 
-## Deploying an Elastic Beanstalk App
+## Deploy an EC2 Launcher
 
-1. Start PyCharm 
-
-2. Create a python environment for your app. You can Use the "terminal" tab at the bottom of your PyCharm app or use the regular terminal. Here I am using conda to create my environment
+1. Go to EC2
 
 ```
 conda create -n env_name python
@@ -42,7 +37,7 @@ option_settings:
     WSGIPath: beanstalkdemo/wsgi.py
 ~~~
 
-6. Next, you need a requirements file to tell Beanstalk which dependencies to install when you deploy your Django app. Create a new file named requirements.txt in the root of the project. Paste the following in the file:
+6. Next...
 
 ~~~
 appdirs==1.4.3
