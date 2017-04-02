@@ -274,42 +274,4 @@ qsub /home/ec2-user/fourier 137 11
 qsub /home/ec2-user/fourier 137 12
 qsub /home/ec2-user/fourier 137 13
 ```
-  
-
-{% include links.html %}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Deploy an EC2 Launcher
 
