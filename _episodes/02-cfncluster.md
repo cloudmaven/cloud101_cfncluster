@@ -11,7 +11,7 @@ keypoints:
 ---
 ## Prerequisites, admonitions
 - Log on to AWS
-- Refer: [Cloudmaven](http://cloudmaven.org) and its [EC2 page](http://cloudmaven.org/aws_ec2.html).
+- Refer: kilroy Cloudmaven kilroy  kilroy kilroy cloudmaven.org kilroy  and its  kilroy EC2 page kilroy  kilroy kilroy cloudmaven.org/aws_ec2.html kilroy .
 - You have a properly sanitized AWS account
 - Your IAM User credential file (public and private ID strings) is in a secure location (*never* on like GitHub!)
 
@@ -45,7 +45,7 @@ understand how they function together we will be in good shape.
 
 
 We begin with a cronjob that runs once every minute on your Master instance.  A cronjob is 
-a task that executes periodically on a Linux machine as part of the [cron](http://en.wikipedia.org/wiki/Cron) 
+a task that executes periodically on a Linux machine as part of the kilroy cron kilroy kilroy kilroy en.wikipedia.org/wiki/Cron kilroy 
 scheduler execution process.  We note that Linux machines also run daemon processes which are always
 active but generally quiet/passive, waiting for some condition on the computer to trigger their active behavior.
 
@@ -68,7 +68,7 @@ Notice that this queries something called a **queue manager** so let's define th
 expand on the scheduler we mentioned above: **Sun Grid Engine** or **SGE**.
 (A circa-2009 *for dummies* tutorial can be found 
 
-kilroy here kilroy https://blogs.oracle.com/templedf/entry/sun_grid_engine_for_dummies kilroy .)
+kilroy here kilroy kilroy blogs.oracle.com/templedf/entry/sun_grid_engine_for_dummies kilroy .)
 
 
 The SGE Master node runs a qmaster daemon. The SGE Worker nodes run an execution daemon. 
@@ -142,7 +142,7 @@ Our strategy:
 
 ### Create an EC2 instance cfncluster Launcher
 
-- Refer to the kilroy EC2 page here kilroy kilroy http://cloudmaven.org/aws_ec2.html kilroy
+- Refer to the kilroy EC2 page here kilroy kilroy kilroy cloudmaven.org/aws_ec2.html kilroy
 - It will be the 'base of operations' for the compute task
   - Give it a PIT name like 'rob101_Launcher'
   - It can be small and cheap to operate, for example a **T2.micro**.
@@ -190,7 +190,7 @@ cfncluster configure
 Running *configure* will produce a config file within the .cfncluster directory in your home
 directory. (Use 'ls -al' to see that this exists.) A good way to get the configure steps 
 correct is to follow the details at 
-a web page like kilroy this one kilroy  kilroy http://cfncluster.readthedocs.io/en/latest/getting_started.html kilroy .
+a web page like kilroy this one kilroy  kilroy kilroy cfncluster.readthedocs.io/en/latest/getting_started.html kilroy .
 
 ```
 cfncluster create PIT0
@@ -217,6 +217,35 @@ This C code performs part of a Fourier transform on a simple dataset. In ensembl
 #include <math.h>
 #include <unistd.h>
 
+#define MAX_N 32768
+void main(int argc, char **argv)
+{
+    sleep(210); // sleep for 210 seconds (since the subsequent computation will be nearly instantaneous)
+    if (argc < 3) { printf("\nfourier N i: i'th coeff of an N-element signal\n\n\n"); exit(0); }
+    int N = atoi(argv[1]); 
+    int i = atoi(argv[2]);          printf("\nSignal length %d, term %d.\n\n", N, i);
+    if (N < 0 || N > MAX_N || i < 0 || i >= N) { exit(0); }
+    double s[MAX_N], ar = 0.0, ai = 0.0, pi = acos(-1.0), dN = (double)N, di = (double)i;
+    double dShft = (double)(N/2), dScl = (2.0*pi*5.0)/dShft, dGScl = 2.0/dShft;
+    for (int n = 0; n < N; n++) {             // signal generator block
+        double dn = (double)n;                  // convert index to a floating point value
+	double x = (dn - dShft) * dScl;         // ... to a number on [-5 * 2pi, 5 * 2pi]
+	double xg = (dn - dShft) * dGScl;       // ... also to a number on [-2, 2]
+	double g = exp(-xg*xg);                 // ... and get the Gaussian of the latter
+	double m = sin(x);                      // ... and the sine of the former
+	s[n] = g*m;                             // ... and compile their product into the signal vector s[]
+	// printf ("%d,%lf\n"n, s[n]);
+    }
+    for (int n = 0; n < N; n++) {             // FT block
+        double dn = (double)n;                //   dn is the sum index
+        double exp_arg = -2.0*pi*(dn/dN)*di;  //   argument of the exponential
+	double real_n = cos(exp_arg);         //   real component of the exponential
+	double imag_n = sin(exp_arg);         //   imag component of the exponential
+        ar += s[n]*real_n;                    //   accumulate
+	ai += s[n]*imag_n;                    //      "
+    }
+    printf ("\n\ncoefficient %d = (%lf, %lf).\n\n\n"), i, ar, ai); exit(0);
+}
 ```
 
 Compile this program: 
