@@ -15,6 +15,7 @@ keypoints:
 
 ## In diagrams
 
+
 Cfncluster uses three machine types: A Launcher, a Master and one or more Workers. The Launcher can as
 easily be your laptop but for the sake of 'everything in the cloud' we will set it up as a small EC2 
 instance. The Master is just what it sounds like, where the intelligence resides. The cloud elasticity
@@ -31,7 +32,11 @@ Let's start with the classic *How It Works* diagram provided by AWS.
 The guts of this thing are the four sub-boxes; so all we need to do is understand how they function 
 together, starting with a cronjob that runs once every minute on your Master instance.  A cronjob is 
 a task that executes periodically on a Linux machine as part of the [cron](https://en.wikipedia.org/wiki/Cron) 
-scheduler execution. You would think that a scheduler like **cron** all by itself could do everything
+scheduler execution process.  In contrast Linux machines also run daemon processes which are always
+active but generally quiet, waiting for some condition on the computer to trigger their active behavior.
+
+
+You would think that a scheduler like **cron** all by itself could do everything
 we show here; and like most ideas in UNIX it is (probably) possible but with a lot of manual effort. 
 So **cfncluster** exists and works with a separate scheduler called **SGE** to accomplish our aims
 with less effort.
@@ -39,44 +44,27 @@ with less effort.
 
 The **cronjob** of interest is **publish_pending_jobs**, expanded here: 
 
+
 ![cfn cluster publish pending jobs](/cloud101_cfncluster/fig/cfncluster_publish_pending_jobs.png)
 
-Notice that this queries something called a **queue manager** so let's define that next. 
 
+Notice that this queries something called a **queue manager** so let's define that next. We first
+expand on the scheduler we mentioned above: **Sun Grid Engine** or **SGE**.
+(A circa-2009 *for dummies* tutorial can be found 
+[here](https://blogs.oracle.com/templedf/entry/sun_grid_engine_for_dummies).)
+
+
+The SGE Master node runs a qmaster daemon. The SGE Worker nodes run an execution daemon. 
+The qmaster daemon waits for you the *User* to submit a job. This job then goes through
+a three state sequence: *pending* (sitting on the job queue), *running*, and then *done*. 
+So we see that the **queue manager** is actually the SGE qmaster daemon. 
+
+How do you submit a job? In our example we will use the **qsub** command (which is short for
+*queue submit* of course): 
+
+```
+qsub fourier 53 19
+``` 
 
 ## Deploy an EC2 Launcher
 
-1. Go to EC2
-
-```
-conda create -n env_name python
-```
-![](/cloud101_webframework/fig/02-elasticbeanstalk-0001.png)
-
-3. You are now ready to create your new project. From the File menu, select New Project then Django. Fill in the location where you want to save your project (Here I am saving it to /Users/Amanda/PycharmProjects/beanstalkdemo). You can your project whatever you want. Then choose your interepreter. Click the little button on the right of the Interpreter text box, select "Add local" then find the virtual environment that you created earlier. If you created your environment using conda, it should be in your home directory under anaconda. For example, my virtual environment will be stored in ~/anaconda/envs/aws-env/. You will want to add the Python interpreter created in that virtual environment. Here, I am using Python 3.6.0. Click create.
-
-![](/cloud101_webframework/fig/02-elasticbeanstalk-0002.png)
-
-4. You should now have a project with a folder structure that looks something like this:
-
-![](/cloud101_webframework/fig/02-elasticbeanstalk-0003.png)
-
-5. Create a folder named .ebextensions in the root of the project tree. This is the where AWS Beanstalk configuration files reside. Create a file named django.config inside the .ebextensions folder. Paste the following (remember to substitute beanstalkdemo for your project name):
-
-~~~
-option_settings:
-  aws:elasticbeanstalk:container:python:
-    WSGIPath: beanstalkdemo/wsgi.py
-~~~
-
-6. Next...
-
-~~~
-appdirs==1.4.3
-Django==1.10
-packaging==16.8
-pyparsing==2.2.0
-six==1.10.0
-~~~
-
-7. 
