@@ -217,35 +217,6 @@ This C code performs part of a Fourier transform on a simple dataset. In ensembl
 #include <math.h>
 #include <unistd.h>
 
-#define MAX_N 32768
-void main(int argc, char **argv)
-{
-    sleep(210); // sleep for 210 seconds (since the subsequent computation will be nearly instantaneous)
-    if (argc < 3) { printf("\nfourier N i: i'th coeff of an N-element signal\n\n\n"); exit(0); }
-    int N = atoi(argv[1]); 
-    int i = atoi(argv[2]);          printf("\nSignal length %d, term %d.\n\n", N, i);
-    if (N < 0 || N > MAX_N || i < 0 || i >= N) { exit(0); }
-    double s[MAX_N], ar = 0.0, ai = 0.0, pi = acos(-1.0), dN = (double)N, di = (double)i;
-    double dShft = (double)(N/2), dScl = (2.0*pi*5.0)/dShft, dGScl = 2.0/dShft;
-    for (int n = 0; n < N; n++) {             // signal generator block
-        double dn = (double)n;                  // convert index to a floating point value
-	double x = (dn - dShft) * dScl;         // ... to a number on [-5 * 2pi, 5 * 2pi]
-	double xg = (dn - dShft) * dGScl;       // ... also to a number on [-2, 2]
-	double g = exp(-xg*xg);                 // ... and get the Gaussian of the latter
-	double m = sin(x);                      // ... and the sine of the former
-	s[n] = g*m;                             // ... and compile their product into the signal vector s[]
-	// printf ("%d,%lf\n"n, s[n]);
-    }
-    for (int n = 0; n < N; n++) {             // FT block
-        double dn = (double)n;                //   dn is the sum index
-        double exp_arg = -2.0*pi*(dn/dN)*di;  //   argument of the exponential
-	double real_n = cos(exp_arg);         //   real component of the exponential
-	double imag_n = sin(exp_arg);         //   imag component of the exponential
-        ar += s[n]*real_n;                    //   accumulate
-	ai += s[n]*imag_n;                    //      "
-    }
-    printf ("\n\ncoefficient %d = (%lf, %lf).\n\n\n"), i, ar, ai); exit(0);
-}
 ```
 
 Compile this program: 
