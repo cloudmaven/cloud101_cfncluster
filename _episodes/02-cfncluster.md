@@ -11,7 +11,7 @@ keypoints:
 ---
 ## Prerequisites, admonitions
 - Log on to AWS
-- Refer: kilroy Cloudmaven kilroy  kilroy kilroy cloudmaven.org kilroy  and its  kilroy EC2 page kilroy  kilroy kilroy cloudmaven.org/aws_ec2.html kilroy .
+- Refer: [Cloudmaven](http://cloudmaven.org) and its [EC2 page](http://cloudmaven.org/aws_ec2.html)).
 - You have a properly sanitized AWS account
 - Your IAM User credential file (public and private ID strings) is in a secure location (*never* on like GitHub!)
 
@@ -45,7 +45,7 @@ understand how they function together we will be in good shape.
 
 
 We begin with a cronjob that runs once every minute on your Master instance.  A cronjob is 
-a task that executes periodically on a Linux machine as part of the kilroy cron kilroy kilroy kilroy en.wikipedia.org/wiki/Cron kilroy 
+a task that executes periodically on a Linux machine as part of the [cron](http://en.wikipedia.org/wiki/Cron)
 scheduler execution process.  We note that Linux machines also run daemon processes which are always
 active but generally quiet/passive, waiting for some condition on the computer to trigger their active behavior.
 
@@ -67,8 +67,7 @@ Ok, so the **cronjob** of interest is **publish_pending_jobs**, expanded here:
 Notice that this queries something called a **queue manager** so let's define that next. We first
 expand on the scheduler we mentioned above: **Sun Grid Engine** or **SGE**.
 (A circa-2009 *for dummies* tutorial can be found 
-
-kilroy here kilroy kilroy blogs.oracle.com/templedf/entry/sun_grid_engine_for_dummies kilroy .)
+[here](http://blogs.oracle.com/templedf/entry/sun_grid_engine_for_dummies).)
 
 
 The SGE Master node runs a qmaster daemon. The SGE Worker nodes run an execution daemon. 
@@ -142,7 +141,7 @@ Our strategy:
 
 ### Create an EC2 instance cfncluster Launcher
 
-- Refer to the kilroy EC2 page here kilroy kilroy kilroy cloudmaven.org/aws_ec2.html kilroy
+- Refer to the [EC2 page here](http://cloudmaven.org/aws_ec2.html)
 - It will be the 'base of operations' for the compute task
   - Give it a PIT name like 'rob101_Launcher'
   - It can be small and cheap to operate, for example a **T2.micro**.
@@ -190,7 +189,7 @@ cfncluster configure
 Running *configure* will produce a config file within the .cfncluster directory in your home
 directory. (Use 'ls -al' to see that this exists.) A good way to get the configure steps 
 correct is to follow the details at 
-a web page like kilroy this one kilroy  kilroy kilroy cfncluster.readthedocs.io/en/latest/getting_started.html kilroy .
+a web page like [this one](http://cfncluster.readthedocs.io/en/latest/getting_started.html).
 
 ```
 cfncluster create PIT0
