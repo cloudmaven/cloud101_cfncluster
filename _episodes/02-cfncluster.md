@@ -11,7 +11,7 @@ keypoints:
 ---
 ## Prerequisites, admonitions
 - Log on to AWS
-- Refer: [Cloudmaven](http://cloudmaven.org) and its [EC2 page](http://cloudmaven.org/aws_ec2.html)).
+- Refer: [Cloudmaven](http://cloudmaven.org) and its [EC2 page](http://cloudmaven.org/aws_ec2.html)
 - You have a properly sanitized AWS account
 - Your IAM User credential file (public and private ID strings) is in a secure location (*never* on like GitHub!)
 
@@ -202,7 +202,9 @@ On the AWS console in your browser you can monitor your progress
 
 ### Our job/Worker program
 
-This C code performs part of a Fourier transform on a simple dataset. In ensemble 
+This C code performs part of a Fourier transform on a simple dataset. The idea would be to bring 
+these results together. To simulate harder work there is a built in 3.5 minute 'sleep' at the 
+beginning of the program. 
 
 ```
 // fourier.c performs a simple Fourier transform of a small data vector
@@ -247,7 +249,7 @@ void main(int argc, char **argv)
 }
 ```
 
-Compile this program: 
+Compile this program as follows: 
 
 ```
 gcc -o fourier fourier.c -lm 
@@ -256,7 +258,8 @@ gcc -o fourier fourier.c -lm
 Now we better save this image of the Master so that our Workers will know how to run fourier without compiling it. 
 
 
-Here is a script that submits fourier jobs to the queue using qsub a number of times:
+Here is a script that submits multiple fourier jobs to the job queue:
+
 ```
 qsub /home/ec2-user/fourier 137 0
 qsub /home/ec2-user/fourier 137 1
@@ -272,5 +275,157 @@ qsub /home/ec2-user/fourier 137 10
 qsub /home/ec2-user/fourier 137 11
 qsub /home/ec2-user/fourier 137 12
 qsub /home/ec2-user/fourier 137 13
+```
+
+
+
+## More legacy content
+
+We are logged in to the cfncluster Master node.  Notice that 'qhost' produces an empty listing; 
+just the 'global' process (which kilroy thinks is the Master)
+
+
+```
+% qhost
+HOSTNAME                          ARCH            NCPU NSOC NCOR NTHR   LOAD   MEMTOT  etcetera
+------------------------------------------------------------------------------------------------
+global                            -                  -    -    -    -      -        -
+```
+
+Create a shellscript file 'kilroy.sh':
+
+
+```
+#!/bin/bash
+sleep 4
+echo "kilroy shout out from $(hostname)"
+```
+
+Make this script executable and submit it to the queue
+
+
+```
+% chmod a+x kilroy.sh
+% qsub kilroy.sh
+```
+
+As machines spin up they appear in **qhost** output on the Master node. As jobs exist they
+appear as the output of **qstat** on the Master node. 
+
+
+```
+% qhost
+HOSTNAME                          ARCH            NCPU NSOC NCOR NTHR   LOAD   MEMTOT  etcetera
+------------------------------------------------------------------------------------------------
+global                            -                  -    -    -    -      -        -  etcetera
+ip-172-31-17-24                   1x-amd64           1    1    1    1   0.51   995.6M  etcetera
+
+% qstat
+job-ID  prior   name       user        state  submit/start at          queue 
+----------------------------------------------------------------------------
+     1  0.55500 kilroy.sh  ec2-user    qw     02/11/2016 22:24:35
+```
+
+
+These tasks run pretty quickly (minutes). When the script runs to completion qstat will again show 
+an empty queue.  The Worker node will stay available for the balance of the hour that I have rented 
+it for; since I already paid for it. Then it evaporates if it is not doing anything.  
+
+
+As these tasks run: Where is the output going? We have a shared filesystem and the Workers are writing to the
+home directory on the Master node. 
+
+
+```
+% ls
+kilroy.sh kilroy.sh.e1 kilroy.sh.e2 kilroy.sh.o1 kilroy.sh.o2
+```
+
+
+These ".o1" and ".e1" files are respectively standard output and standard error.
+
+
+How does configuration work? It is split between the Launcher and the head node. 
+
+
+This would be a good place to put a kilroy insert on movable targets: ip address changing.
+
+
+kilroy fragment: 
+
+
+[CfnCluster config documentation](http://cfncluster.readthedocs.org/en/latest/configuration.html)
+
+
+The directory on Launcher is .cfncluster with two files: *config* and *cfncluster-cli.log*. The 
+latter is the log file produced by prior cluster activity. 
+
+
+To see the prior configuration run 'configure':  
+
+
+```
+% cfncluster configure 
+```
+
+
+## Second time around: Running a job
+
+
+- ssh to Master
+- Create the fourier.c program, compile it
+- Use qsub or qsh to submit several tasks
+
+
+Our outputs will indicate their respective inputs...
+
+
+Here is a .cfncluster/config file with an Elastic Block Storage (**EBS**) element of interest.
+Recall this file sits on the Launcher instance.
+
+
+```
+[aws]
+aws_region_name = us-west-2
+
+[cluster default]
+vpc_settings = public
+key_name = MPIPlay
+ebs_settings = helloebs
+shared_dir = /hello
+ec2_iam_role = hello_world
+initial_queue_size = 5
+max_queue_size = 5
+
+[vpc public]
+master_subnet_id = subnet-37513940
+vpc_id = vpc-a60a4ec3
+
+[global]
+update_check = true
+sanity_check = true
+cluster_template = default
+
+[ebs helloebs]
+ebs_snapshot_id = snap-f67581a4
+```
+
+Here is a kilroy problem: A fragment qsub script file with some cool purpose that Kilroy lost track of...
+
+```
+#!/bin/sh
+#$ -cwd
+#$ -N helloworld
+#$ -pe mpi 5
+#$ -j y
+date
+
+/bin/rm hostfile
+
+while read line; do
+    echo $line | awk '{print $1}' >> hostfile
+done < $PE_HOSTFILE
+
+/usr/lib64/openmpi/bin/mpirun -hostfile hostfile ./hw.x > helloall.out
 ```
 
