@@ -141,7 +141,7 @@ Our strategy:
 
 ### Create an EC2 instance cfncluster Launcher
 
-- Refer to the [EC2 page here](aws_ec2.html)
+- Refer to the [EC2 page here](http://cloudmaven.org/aws_ec2.html)
 - It will be the 'base of operations' for the compute task
   - Give it a PIT name like 'rob101_Launcher'
   - It can be small and cheap to operate, for example a **T2.micro**.
