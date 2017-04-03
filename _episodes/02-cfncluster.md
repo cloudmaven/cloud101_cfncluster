@@ -19,10 +19,11 @@ keypoints:
 ## In diagrams
 
 
-Cfncluster uses three machine types: A Launcher, a Master and one or more Workers. (You can also worry
+Cfncluster uses three machine types: A Launcher, a Master and one or more Workers. (You can also think
 about shadow Masters that jump in if the Master fails; which in turn points up the notion of a robust
 cluster that can carry on despite failures... which in turn leads to failure-driven strategies; cf
 the AWS Spot market.)
+
 
 The Launcher is as the name implies just about getting things set up. It can as easily be your laptop 
 but for the sake of 'everything in the cloud' we will set it up as a small EC2 instance. The Master is 
@@ -117,13 +118,32 @@ Here are the corresponding diagrams:
 ![cfncluster auto scaling](/cloud101_cfncluster/fig/cfncluster_autoscaling.png)
 
 
+Notice that Simple Queue Service (SQS) is an important part of this flowchart. It is 
+discussed further below as the fourth of our four daemon processes in CfnCluster. 
+Before turning to SQS though let us dispense with the Nodewatcher as follows.
+
 ![cfncluster node watcher](/cloud101_cfncluster/fig/cfncluster_nodewatcher.png)
+
+
+This is a straightforward IF AND statement that causes Workers to be terminated.
+
+
+### Simple Queue Service (SQS)
+
+SQS is used in cfncluster as the online/offline messaging system.  The sqswatcher daemon
+running on the CfnCluster Master monitors for SQS messages emitted produced by Auto Scaling: 
+When an instance comes online it submits "instance ready" to SQS which is picked up by 
+sqs_watcher running on the Master. These messages are used to notify the queue manager 
+(in our case the SGE qmaster daemon) that new instances are online. The reverse is also
+true: When instances are terminated the SQS is used to notify the Mater that they are
+no longer available.
 
 
 ## Walkthrough
 
 
 ### Key vocabulary
+
 
 - PIT: Project Identifier Tag, a unique string you designate like 'himat'
 - queue: A stack of jobs managed by a scheduler (in our example SGE)
@@ -140,6 +160,7 @@ Here are the corresponding diagrams:
 
 ### Strategy
 
+
 These steps depend upon some pre-configuration, already done prior to the class. 
 
 
@@ -148,19 +169,25 @@ These steps depend upon some pre-configuration, already done prior to the class.
 - The Security Group permits ssh in from *any* location on the internet
   - In passing this is not best practice because your work is visible from anywhere. 
 
+
 In what follows you will want to have a Project Identifer Tag or PIT handy. This is just 
 a short ID string that you will use to tag everything you create. Mine PIT = 'kilroy'.
 Herein I use *PIT* or *kilroy* interchangeably.
 
+
 Our strategy:
+
 
 1. Start up a Launcher EC2 on AWS 
 2. Log in to this machine as 'ec2-user' using ssh and update it (standard practice)
 3. Install cfncluster and create a cluster on AWS '*kilroy*'
 4. On the AWS console watch your progress on the CloudFormation service 
-5. 
+5. Once a Master is available: Log in and configure it to execute some task 
+6. Use a shell script to fill up the job queue with tasks
+7. Let SGE "notice" new instances and give them jobs as they become available
 
-- Autoscale group
+
+- Auto Scale Group (ASG)
 - Cloud Formation service
 - Cloud Watch service
 - Simple Notification Service
