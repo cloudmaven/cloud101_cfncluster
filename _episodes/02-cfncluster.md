@@ -241,11 +241,13 @@ We will...
   - Security Group = cloud101_securitygroup (ssh allowed from anywhere: 'hi risk')
 
 
-### Log in and configure the Launcher
+## Log in and configure the Launcher
 
-You should now be able to log in to your cfncluster Launcher using ssh (or PuTTY on Windows)
+
+You now log in to your cfncluster Launcher using ssh (or PuTTY on Windows)
 where your login name is 'ec2-user'. You do not enter a password as you are using your .pem
 (or .ppk) file to authenticate. 
+
 
 Once logged in you will update your machine, install the cfncluster tools, configure 
 cfncluster and create a new named cluster. This in turn will lead to the last steps to 
@@ -254,19 +256,46 @@ run a large-scale compute task.
 On your EC2 Launcher:
 
 ```
-sudo yum update
+sudo yum update -y
 sudo pip install cfncluster
 sudo pip install --upgrade cfncluster
-cfncluster configure
+cfncluster 
 ```
 
-Running *configure* will produce a config file within the .cfncluster directory in your home
+We run **configure** as a sub-command of the **cfncluster** command.  This creates a configuration
+file that governs the behavior of our subsequent cluster computing using this utility.
+Hence **cfncluster configure** produces a config file within the .cfncluster directory in your home
 directory. (Use 'ls -al' to see that this exists.) A good way to get the configure steps 
 correct is to follow the details at 
 a web page like [this one](http://cfncluster.readthedocs.io/en/latest/getting_started.html).
 
+
+You will need to have a copy-able view of your IAM User credentials file available for these config steps: 
+
 ```
-cfncluster create PIT0
+% cfncluster configure
+
+<here is a guide to the answers to the ensuing dialog>
+
+Cluster Template [default]: <hit enter>
+AWS Access Key ID []: <cut and paste your Access Key Id string from your credentials file>
+AWS Secret Access Key ID []: <cut and paste your Secret Access Key>
+AWS Region ID []: <type in us-west-2 which is Oregon>
+VPC Name [public]: <hit enter>
+Key Name []: <enter your keypair name as in 'kilroy101'>
+VPC ID []: <enter the cloud101_vpc ID which is 'vpc-34014a53'>
+Master Subnet ID []: <enter the only choice, subnet-90382ac8>
+```
+
+At this point you can examine the two files in the .cfncluster directory: **config** and **cfncluster-cli.log**.
+
+
+Finally we are ready to **create** the cfncluster. This will spin up an EC2 instance as our Master node
+also referred to as the head node.
+
+
+```
+% cfncluster create kilroy101
 ```
 
 The cluster you create includes a head node. By default this will be a small EC2 instance (T2). 
