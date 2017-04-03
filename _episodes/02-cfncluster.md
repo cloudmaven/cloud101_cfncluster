@@ -287,7 +287,14 @@ VPC ID []: <enter the cloud101_vpc ID which is 'vpc-34014a53'>
 Master Subnet ID []: <enter the only choice, subnet-90382ac8>
 ```
 
-At this point you can examine the two files in the .cfncluster directory: **config** and **cfncluster-cli.log**.
+At this point you can re-run **cfncluster configure** and see it allows you to default-enter
+your way through the same process or change values if you like. You can also examine the two files 
+in the .cfncluster directory: **config** and **cfncluster-cli.log**.
+
+
+The **config** file contents are interesting and include only a fraction of the complete
+config vocabulary. For a listing of this vocabulary see the 
+[Configuration page](http://cfncluster.readthedocs.io/en/latest/configuration.html) published by AWS. 
 
 
 Finally we are ready to **create** the cfncluster. This will spin up an EC2 instance as our Master node
