@@ -158,10 +158,7 @@ no longer available.
 - IAM User Keys: There are two: The AWS Access Key ID and the AWS Secret Access Key ID
 
 
-### Strategy
-
-
-These steps depend upon some pre-configuration, already done prior to the class. 
+These steps depend upon some pre-configuration, already done prior to the class: 
 
 
 - We created a Virtual Private Cloud with a public subnet for this exercise. 
@@ -175,7 +172,7 @@ a short ID string that you will use to tag everything you create. Mine PIT = 'ki
 Herein I use *PIT* or *kilroy* interchangeably.
 
 
-Our strategy:
+We will...
 
 
 1. Start up a Launcher EC2 on AWS 
@@ -200,33 +197,49 @@ Our strategy:
     - Shell script to launch multiple jobs to the SGE processing queue
 
 
-### Create an EC2 instance cfncluster Launcher
+## Create an EC2 instance cfncluster Launcher
 
 - Refer to the [EC2 page here](http://cloudmaven.org/aws_ec2.html)
-- It will be the 'base of operations' for the compute task
-  - Give it a PIT name like 'rob101_Launcher'
-  - It can be small and cheap to operate, for example a **T2.micro**.
+- Ensure you have your region (upper right of console) set to **Oregon**
+- Click on the **Launch EC2 Instance** button
 - Choose the Amazon Linux AMI 
   - This has AWS tools already installed; but we will update and install cfncluster
-- The default EBS volume is fine but could be expanded as needed per data 
-- We will place everything in a single Region/AZ/etceter
-    - Region = us-west-2 (Oregon)
-    - AZ = Zone C
-    - VPC = Virtual Private Cloud cloud101_vpc
-    - Subnet = cloud101_public_subnet
-    - Internet Gateway = ... kilroy
-    - Route Table entries ... kilroy
-    - Security Group = cloud101_securitygroup (ssh allowed from anywhere: 'hi risk')
-- Review and launch
-  - Download a new key pair
-  - You can use an existing key pair as well; be sure you have it on hand
-    - This will be a '.pem' file extension. 
-      - If you are Windows using PuTTY you will need to convert to a .ppk file format
-      - This is done using the PuTTYGen application
-- Once it spins up (green dot, ip address present) ssh to this EC2 as ec2-user
+- Choose a small and cheap instance type, the default **T2.micro**.
+- Do *not* click Review and Launch; we want to add some details
+  - Click **Next: Configure Instance Details**
+  - Choose the class VPC and subnet 'cloud101'
+  - Enable (check) Cloud Watch
+  - Choose 'shared tenancy'
+- This EC2 Launcher will be our starting point 
+  - Click through Add Storage, Add Tags, Configure Security Group
+    - Here click on **Select an Existing Security Group**
+    - Choose the cloud101 security group
+    - *Now* click **Review and Launch**
+- Click **Launch** and notice a key pair box pops up
+  - If you have already created a keypair for this class: 
+    - Select **Use an existing keypair** and select that keypair
+  - Else if you have not:
+    - Select **Create a new key pair** and give it a unique name; and download it
+      - The file extension will be .ppm. 
+      - You use PuTTYGen to convert this to .ppk if you are using Windows
+  - Click on **Launch Instances** and monitor the progress of your machine (2 minutes)
+- In the EC2 monitor on the console notice all the instances in the table
+  - Sort by Key Name, find your Key, and re-name your machine 
+    - For example kilroy_Launcher
+- Your instance is ready when the table gives it a green dot and there is an ip address present
+- Use **ssh** or **PuTTY** to log in to your instance as ec2-user@ip-address
+  - Get the ip address from the same table
 
-Notice that the VPC and so on already exist: Preliminary spadework we are sparing you in this
-course. 
+
+- We place everything in a single Region/AZ/etceter
+  - Region = us-west-2 (Oregon)
+  - AZ = Zone C
+  - VPC = Virtual Private Cloud cloud101_vpc
+  - Subnet = cloud101_public_subnet
+  - Internet Gateway = ... kilroy
+  - Route Table entries ... kilroy
+  - Security Group = cloud101_securitygroup (ssh allowed from anywhere: 'hi risk')
+
 
 ### Log in and configure the Launcher
 
