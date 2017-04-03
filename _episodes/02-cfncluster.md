@@ -75,19 +75,53 @@ The qmaster daemon waits for you the *User* to submit a job. This job then goes 
 a three state sequence: *pending* (sitting on the job queue), *running*, and then *done*. 
 So we see that the **queue manager** is actually the SGE qmaster daemon. 
 
+
 How do you submit a job? In our example we will use the **qsub** command (which is short for
 *queue submit* of course): 
+
 
 ```
 qsub fourier 53 19
 ``` 
 
 
+### Auto Scaling Group and Nodewatcher Diagrams
 
 
+Clusters deployed within CfnCluster use the configure file to determine:
+
+
+- initial_queue_size: Initial size of the ComputeFleet Auto Scaling Group (ASG)
+- max_queue_size: Maximum size of the ComputeFleet ASG.
+
+
+Two CloudWatch alarms are created. They monitor a custom Amazon CloudWatch metric that is published 
+by the Master node of the cluster. This metric is called **pending**. These CloudWatch alarms call 
+ScaleUp policies associated with the ComputeFleet ASG. This is what handles the automatic addition 
+of compute nodes when there are pending tasks in the cluster: Nodes are added until the alarms stop
+or the max_queue_size is reached.  Auto Scaling also has a Cloudwatch alarm to remove instances that
+are no longer needed; hence there is a corresponding ScaleDown policy. 
+
+
+Each Worker instance in the ComputeFleet ASG runs a process called **nodewatcher**.  This process 
+monitors the instance and if idle AND close to the end of the current hour the Worker is removed
+from the ComputeFleet ASG using an API call.  Again the overall concept here is that the cluster
+scales itself back as long as it has adequate capacity for the current perceived work load and
+as long as it is at or above its configuration minimum. To this end there is a third boolean
+parameter **maintain_initial_queue_size** that can be set to true in the config file. 
+
+
+Here are the corresponding diagrams: 
+
+
+![cfncluster auto scaling](/cloud101_cfncluster/fig/cfncluster_autoscaling.png)
+
+
+![cfncluster node watcher](/cloud101_cfncluster/fig/cfncluster_nodewatcher.png)
 
 
 ## Walkthrough
+
 
 ### Key vocabulary
 
