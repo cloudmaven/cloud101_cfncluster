@@ -51,7 +51,7 @@ scheduler execution process.  We note that Linux machines also run daemon proces
 active but generally quiet/passive, waiting for some condition on the computer to trigger their active behavior.
 
 
-You would think that a scheduler like **cron** all by itself could do everything we show here; and like 
+You would think that a scheduler like **cron** all by itself could do everything we show here; and like
 most solution ideas in Linux it is possible but it would require considerable manual effort.  Rather 
 we use **cfncluster** working with a different scheduler called **SGE** to take advantage of an existing
 solution. This solution includes a lot of detail management that has arisen as cluster computing has
@@ -82,7 +82,7 @@ How do you submit a job? In our example we will use the **qsub** command (which 
 
 
 ```
-qsub fourier 53 19
+qsub -V -b y -cwd /home/ec2-user/fourier 37 19
 ``` 
 
 
@@ -92,8 +92,8 @@ qsub fourier 53 19
 Clusters deployed within CfnCluster use the configure file to determine:
 
 
-- initial_queue_size: Initial size of the ComputeFleet Auto Scaling Group (ASG)
-- max_queue_size: Maximum size of the ComputeFleet ASG.
+- **initial_queue_size**: Initial size of the ComputeFleet Auto Scaling Group (ASG)
+- **max_queue_size**: Maximum size of the ComputeFleet ASG.
 
 
 Two CloudWatch alarms are created. They monitor a custom Amazon CloudWatch metric that is published 
@@ -122,6 +122,7 @@ Notice that Simple Queue Service (SQS) is an important part of this flowchart. I
 discussed further below as the fourth of our four daemon processes in CfnCluster. 
 Before turning to SQS though let us dispense with the Nodewatcher as follows.
 
+
 ![cfncluster node watcher](/cloud101_cfncluster/fig/cfncluster_nodewatcher.png)
 
 
@@ -129,6 +130,7 @@ This is a straightforward IF AND statement that causes Workers to be terminated.
 
 
 ### Simple Queue Service (SQS)
+
 
 SQS is used in cfncluster as the online/offline messaging system.  The sqswatcher daemon
 running on the CfnCluster Master monitors for SQS messages emitted produced by Auto Scaling: 
@@ -314,16 +316,19 @@ config vocabulary. For a listing of this vocabulary see the
 
 
 Finally we are ready to **create** the cfncluster. This will spin up an EC2 instance as our Master node
-also referred to as the head node.
+also referred to as the head node. It will be listed by default as Name = **Master** in the EC2 table.
 
 
 ```
 % cfncluster create n101
 ```
 
-**n101** is simply the name of the cluster. Creation will include spinning up a **Master** node.
-This is sometimes called the *head node*. By default this will be a small EC2 instance (T2). 
-On the AWS console in your browser you can monitor your progress using the CloudFormation service.
+**n101** is simply the name of the cluster. Creation takes several minutes will launch the **Master** 
+node as noted.  By default this will be a small EC2 instance (T2).  
+
+
+On the AWS console in your browser 
+you can monitor your progress using the CloudFormation service.
 
 
 Once the Master is up: Log in using the same procedure as for the Launcher and do an update 
@@ -334,11 +339,19 @@ sudo yum update -y
 ```
 
 
-### Our job/Worker program
+## Running a cluster task
 
-This C code performs part of a Fourier transform on a simple dataset. The idea would be to bring 
-these results together. To simulate harder work there is a built in 3.5 minute 'sleep' at the 
-beginning of the program. 
+
+You have a running cfncluster including a **Master** node where you are logged in. Here you 
+configure your processing task. Once that is done you can set up a script file that submits
+a number of processes to the processing queue using the Linux command **qsub**. These will
+be placed on a queue that we can view using the command **qstat**. 
+
+Let's begin by writing a slightly non-trivial C program and compiling that using the **gcc** 
+compiler.  This program performs part of a Fourier transform on a simple dataset. The idea 
+would be to bring these results together. To simulate a more extended task there is a built 
+in 3.5 minute 'sleep' at the beginning of the program execution. 
+
 
 ```
 #include <stdio.h>
@@ -351,7 +364,7 @@ void main(int argc, char **argv)
 {
     sleep(210); // sleep for 210 seconds
     if (argc < 3) { printf("\nfourier N i: i'th coeff of an N-element signal\n\n\n"); exit(0); }
-    int N = atoi(argv[1]); int i = atoi(argv[2]); printf("\nSignal length %d, term %d.\n\n", N, i);
+    int N = atoi(argv[1]); int i = atoi(argv[2]); 
     if (N < 0 || N > MAX_N || i < 0 || i >= N) { exit(0); }
     int n;
     double s[MAX_N], ar = 0.0, ai = 0.0, pi = acos(-1.0), dN = (double)N, di = (double)i;
@@ -372,135 +385,171 @@ void main(int argc, char **argv)
 }
 ```
 
-Compile this program as follows: 
+Compile this program:
 
 ```
 gcc -o fourier fourier.c -lm 
 ```
 
-Now we better save this image of the Master so that our Workers will know how to run fourier without compiling it. 
+The executable resides in the same location, by default /home/ec2-user.
 
 
-Here is a script that submits multiple fourier jobs to the job queue:
+Now we better save this image of the Master so that our Workers (Compute nodes) will know how to run fourier without compiling it. 
+The good news is that the **Compute** nodes are built as images of the **Master** node so they will already know how to run **fourier**.
+
+
+Here is a script that submits multiple fourier jobs to the job queue; I named it 'go.sh':
+
 
 ```
-qsub /home/ec2-user/fourier 137 0
-qsub /home/ec2-user/fourier 137 1
-qsub /home/ec2-user/fourier 137 2
-qsub /home/ec2-user/fourier 137 3
-qsub /home/ec2-user/fourier 137 4
-qsub /home/ec2-user/fourier 137 5
-qsub /home/ec2-user/fourier 137 6
-qsub /home/ec2-user/fourier 137 7
-qsub /home/ec2-user/fourier 137 8
-qsub /home/ec2-user/fourier 137 9
-qsub /home/ec2-user/fourier 137 10
-qsub /home/ec2-user/fourier 137 11
-qsub /home/ec2-user/fourier 137 12
-qsub /home/ec2-user/fourier 137 13
+qsub -V -b y -cwd /home/ec2-user/fourier 37 0
+qsub -V -b y -cwd /home/ec2-user/fourier 37 1
+qsub -V -b y -cwd /home/ec2-user/fourier 37 2
+qsub -V -b y -cwd /home/ec2-user/fourier 37 3
+qsub -V -b y -cwd /home/ec2-user/fourier 37 4
+qsub -V -b y -cwd /home/ec2-user/fourier 37 5
+qsub -V -b y -cwd /home/ec2-user/fourier 37 6
+qsub -V -b y -cwd /home/ec2-user/fourier 37 7
+qsub -V -b y -cwd /home/ec2-user/fourier 37 8
+qsub -V -b y -cwd /home/ec2-user/fourier 37 9
+qsub -V -b y -cwd /home/ec2-user/fourier 37 10
+qsub -V -b y -cwd /home/ec2-user/fourier 37 11
+qsub -V -b y -cwd /home/ec2-user/fourier 37 12
+qsub -V -b y -cwd /home/ec2-user/fourier 37 13
+qsub -V -b y -cwd /home/ec2-user/fourier 37 14
+qsub -V -b y -cwd /home/ec2-user/fourier 37 15
+qsub -V -b y -cwd /home/ec2-user/fourier 37 16
+qsub -V -b y -cwd /home/ec2-user/fourier 37 17
+qsub -V -b y -cwd /home/ec2-user/fourier 37 18
+qsub -V -b y -cwd /home/ec2-user/fourier 37 19
+qsub -V -b y -cwd /home/ec2-user/fourier 37 20
+qsub -V -b y -cwd /home/ec2-user/fourier 37 21
+qsub -V -b y -cwd /home/ec2-user/fourier 37 22
+qsub -V -b y -cwd /home/ec2-user/fourier 37 23
+qsub -V -b y -cwd /home/ec2-user/fourier 37 24
+qsub -V -b y -cwd /home/ec2-user/fourier 37 25
+qsub -V -b y -cwd /home/ec2-user/fourier 37 26
+qsub -V -b y -cwd /home/ec2-user/fourier 37 27
+qsub -V -b y -cwd /home/ec2-user/fourier 37 28
+qsub -V -b y -cwd /home/ec2-user/fourier 37 29
+qsub -V -b y -cwd /home/ec2-user/fourier 37 30
+qsub -V -b y -cwd /home/ec2-user/fourier 37 31
+qsub -V -b y -cwd /home/ec2-user/fourier 37 32
+qsub -V -b y -cwd /home/ec2-user/fourier 37 33
+qsub -V -b y -cwd /home/ec2-user/fourier 37 34
+qsub -V -b y -cwd /home/ec2-user/fourier 37 35
+qsub -V -b y -cwd /home/ec2-user/fourier 37 36
 ```
 
 
+## Monitoring the process
 
-## More legacy content
 
-We are logged in to the cfncluster Master node.  Notice that 'qhost' produces an empty listing; 
-just the 'global' process (which kilroy thinks is the Master)
+Start the jobs (place them on the queue) on the **Master** node by issuing this command: 
+
+
+```
+% source go.sh
+```
+
+Notice that 'qhost' produces an empty listing at the outset: 
+Just the 'global' process (which kilroy thinks is the Master)
 
 
 ```
 % qhost
+
 HOSTNAME                          ARCH            NCPU NSOC NCOR NTHR   LOAD   MEMTOT  etcetera
 ------------------------------------------------------------------------------------------------
 global                            -                  -    -    -    -      -        -
 ```
 
-Create a shellscript file 'kilroy.sh':
+After the queue has run for a few minutes this **qhost** command should expand, as in: 
+
+
+```
+% qhost
+
+HOSTNAME                ARCH         NCPU NSOC NCOR NTHR  LOAD  MEMTOT  MEMUSE  SWAPTO  SWAPUS
+----------------------------------------------------------------------------------------------
+global                  -               -    -    -    -     -       -       -       -       -
+ip-172-31-13-176        lx-amd64        1    1    1    1  0.01  995.4M  137.1M     0.0     0.0
+ip-172-31-3-231         lx-amd64        1    1    1    1  0.04  995.4M  135.9M     0.0     0.0
+ip-172-31-6-55          lx-amd64        1    1    1    1  0.01  995.4M  136.3M     0.0     0.0
+```
+
+The **qstat** command will provide a view of the queue: 
+
+```
+% qstat
+job-ID  prior   name       user         state submit/start at     queue                          slots ja-task-ID
+-----------------------------------------------------------------------------------------------------------------
+     82 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     83 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     84 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     85 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     86 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     87 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     88 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     89 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     90 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     91 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     92 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     93 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     94 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     95 0.55500 fourier    ec2-user     qw    04/04/2017 18:53:53                                    1
+     .
+     .
+     .
+     (and so on)
+     .
+     .
+```
+
+This queue listing will gradually get shorter as the tasks complete. As they complete they will write both
+standard output and standard error files into the /home/ec2-user directory. The standard output is print
+statement in the C program giving the Fourier coefficient value. 
+
+
+As an alternative 'hello world' approach to running cfncluster tasks you can edit a simple bash script
+file 'hello.sh' to read as follows: 
 
 
 ```
 #!/bin/bash
 sleep 4
-echo "kilroy shout out from $(hostname)"
+echo "hello world shout out from $(hostname)"
 ```
 
 Make this script executable and submit it to the queue
 
 
 ```
-% chmod a+x kilroy.sh
-% qsub kilroy.sh
+% chmod a+x hello.sh
+% qsub hello.sh
 ```
 
-As machines spin up they appear in **qhost** output on the Master node. As jobs exist they
-appear as the output of **qstat** on the Master node. 
-
-
-```
-% qhost
-HOSTNAME                          ARCH            NCPU NSOC NCOR NTHR   LOAD   MEMTOT  etcetera
-------------------------------------------------------------------------------------------------
-global                            -                  -    -    -    -      -        -  etcetera
-ip-172-31-17-24                   1x-amd64           1    1    1    1   0.51   995.6M  etcetera
-
-% qstat
-job-ID  prior   name       user        state  submit/start at          queue 
-----------------------------------------------------------------------------
-     1  0.55500 kilroy.sh  ec2-user    qw     02/11/2016 22:24:35
-```
-
-
-These tasks run pretty quickly (minutes). When the script runs to completion qstat will again show 
-an empty queue.  The Worker node will stay available for the balance of the hour that I have rented 
-it for; since I already paid for it. Then it evaporates if it is not doing anything.  
+All of these example jobs run quickly (in minutes). When the script runs to completion **qstat** will 
+again show an empty queue.  The **Compute** (**Worker**) node will stay available for the balance of an 
+hour since that is the billing time unit.  I paid for it so I will hang on to it. It then evaporates 
+back into the instance pool if it is not doing anything.  
 
 
 As these tasks run: Where is the output going? We have a shared filesystem and the Workers are writing to the
 home directory on the Master node. 
 
 
-```
-% ls
-kilroy.sh kilroy.sh.e1 kilroy.sh.e2 kilroy.sh.o1 kilroy.sh.o2
-```
+###  Reviewing Launcher and **cfncluster config** 
+
+To connect this back to the **Launcher**: The cluster behavior is controlled by the *cfncluster configure*
+process which is described extensively in the 
+[CfnCluster config documentation](http://cfncluster.readthedocs.org/en/latest/configuration.html).
+The directory on Launcher is where the configuration file resides is **.cfncluster** where we find two 
+files: *config* and *cfncluster-cli.log*. The latter is the log file produced by prior cluster activity. 
 
 
-These ".o1" and ".e1" files are respectively standard output and standard error.
-
-
-How does configuration work? It is split between the Launcher and the head node. 
-
-
-This would be a good place to put a kilroy insert on movable targets: ip address changing.
-
-
-kilroy fragment: 
-
-
-[CfnCluster config documentation](http://cfncluster.readthedocs.org/en/latest/configuration.html)
-
-
-The directory on Launcher is .cfncluster with two files: *config* and *cfncluster-cli.log*. The 
-latter is the log file produced by prior cluster activity. 
-
-
-To see the prior configuration run 'configure':  
-
-
-```
-% cfncluster configure 
-```
-
-
-## Second time around: Running a job
-
-
-- ssh to Master
-- Create the fourier.c program, compile it
-- Use qsub or qsh to submit several tasks
-
-
-Our outputs will indicate their respective inputs...
+Notice that the **Launcher** has nothing whatever to do with the cluster compute task. It just builds
+the cluster *entity*; and we have to further configure that cluster to do the compute task. 
 
 
 Here is a .cfncluster/config file with an Elastic Block Storage (**EBS**) element of interest.
@@ -533,22 +582,8 @@ cluster_template = default
 ebs_snapshot_id = snap-f67581a4
 ```
 
-Here is a kilroy problem: A fragment qsub script file with some cool purpose that Kilroy lost track of...
+This opens up the prospect of attaching some fast-access memory to each **Compute** instance as it comes online.
+This and many other details make cloud computing a mix of Wild West, art and computational results.  
 
-```
-#!/bin/sh
-#$ -cwd
-#$ -N helloworld
-#$ -pe mpi 5
-#$ -j y
-date
 
-/bin/rm hostfile
-
-while read line; do
-    echo $line | awk '{print $1}' >> hostfile
-done < $PE_HOSTFILE
-
-/usr/lib64/openmpi/bin/mpirun -hostfile hostfile ./hw.x > helloall.out
-```
 
