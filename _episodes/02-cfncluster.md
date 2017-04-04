@@ -177,12 +177,14 @@ We will...
 
 1. Start up a Launcher EC2 on AWS 
 2. Log in to this machine as 'ec2-user' using ssh and update it (standard practice)
-3. Install cfncluster and create a cluster on AWS '*kilroy*'
-4. On the AWS console watch your progress on the CloudFormation service 
+3. Install cfncluster and create a cluster on AWS 
+4. On the AWS console watch our progress on the CloudFormation service 
 5. Once a Master is available: Log in and configure it to execute some task 
-6. Use a shell script to fill up the job queue with tasks
+6. Use a shell script on the Master to fill up the job queue with tasks
 7. Let SGE "notice" new instances and give them jobs as they become available
 
+
+Some of the key terms involved:
 
 - Auto Scale Group (ASG)
 - Cloud Formation service
@@ -200,7 +202,22 @@ We will...
 ## Create an EC2 instance cfncluster Launcher
 
 - Refer to the [EC2 page here](http://cloudmaven.org/aws_ec2.html)
-- Ensure you have your region (upper right of console) set to **Oregon**
+- Ensure you have your region (upper right of console) set to one of the following:
+  - California is us-west-1 and is where this test was run
+    - ap-northeast-1
+    - ap-northeast-2
+    - ap-south-1
+    - ap-southeast-1
+    - ap-southeast-2
+    - eu-central-1
+    - eu-west-1
+    - sa-east-1
+    - us-east-1
+    - us-west-1
+    - us-west-2 (This is Oregon but it will not work on the cloudczar account: EIPs are all used up)
+
+
+
 - Click on the **Launch EC2 Instance** button
 - Choose the Amazon Linux AMI 
   - This has AWS tools already installed; but we will update and install cfncluster
@@ -256,10 +273,9 @@ run a large-scale compute task.
 On your EC2 Launcher:
 
 ```
-sudo yum update -y
-sudo pip install cfncluster
-sudo pip install --upgrade cfncluster
-cfncluster 
+% sudo yum update -y
+% sudo pip install --upgrade cfncluster
+% cfncluster 
 ```
 
 We run **configure** as a sub-command of the **cfncluster** command.  This creates a configuration
@@ -302,12 +318,20 @@ also referred to as the head node.
 
 
 ```
-% cfncluster create kilroy101
+% cfncluster create n101
 ```
 
-The cluster you create includes a head node. By default this will be a small EC2 instance (T2). 
-On the AWS console in your browser you can monitor your progress 
+**n101** is simply the name of the cluster. Creation will include spinning up a **Master** node.
+This is sometimes called the *head node*. By default this will be a small EC2 instance (T2). 
+On the AWS console in your browser you can monitor your progress using the CloudFormation service.
 
+
+Once the Master is up: Log in using the same procedure as for the Launcher and do an update 
+
+
+```
+sudo yum update -y
+```
 
 
 ### Our job/Worker program
@@ -317,12 +341,6 @@ these results together. To simulate harder work there is a built in 3.5 minute '
 beginning of the program. 
 
 ```
-// fourier.c performs a simple Fourier transform of a small data vector
-//   This is intended as a fast but non-trivial compute task.
-//     Signal = a Gaussian envelope x sine wave with about 10 cycles
-//     FT: i is the i'th term of the FT; a_i is the coefficient, complex 
-//     a_i = Sum over n running 0 to N-1 of x_n * CE
-//     CE is a complex exponential e^{ -2 * pi * i * k * n / N }
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -331,31 +349,26 @@ beginning of the program.
 #define MAX_N 32768
 void main(int argc, char **argv)
 {
-    sleep(210); // sleep for 210 seconds (since the subsequent computation will be nearly instantaneous)
+    sleep(210); // sleep for 210 seconds
     if (argc < 3) { printf("\nfourier N i: i'th coeff of an N-element signal\n\n\n"); exit(0); }
-    int N = atoi(argv[1]); 
-    int i = atoi(argv[2]);          printf("\nSignal length %d, term %d.\n\n", N, i);
+    int N = atoi(argv[1]); int i = atoi(argv[2]); printf("\nSignal length %d, term %d.\n\n", N, i);
     if (N < 0 || N > MAX_N || i < 0 || i >= N) { exit(0); }
+    int n;
     double s[MAX_N], ar = 0.0, ai = 0.0, pi = acos(-1.0), dN = (double)N, di = (double)i;
     double dShft = (double)(N/2), dScl = (2.0*pi*5.0)/dShft, dGScl = 2.0/dShft;
-    for (int n = 0; n < N; n++) {             // signal generator block
-        double dn = (double)n;                  // convert index to a floating point value
-	double x = (dn - dShft) * dScl;         // ... to a number on [-5 * 2pi, 5 * 2pi]
-	double xg = (dn - dShft) * dGScl;       // ... also to a number on [-2, 2]
-	double g = exp(-xg*xg);                 // ... and get the Gaussian of the latter
-	double m = sin(x);                      // ... and the sine of the former
-	s[n] = g*m;                             // ... and compile their product into the signal vector s[]
-	// printf ("%d,%lf\n"n, s[n]);
+    for (n = 0; n < N; n++) {             // signal generator block
+        double x = ((double)n - dShft) * dScl;         // ... to a number on [-5 * 2pi, 5 * 2pi]
+        double xg = ((double)n - dShft) * dGScl;       // ... also to a number on [-2, 2]
+        s[n] = exp(-xg*xg)*sin(x);                             // ... and compile their product into the signal vector s[]
     }
-    for (int n = 0; n < N; n++) {             // FT block
-        double dn = (double)n;                //   dn is the sum index
-        double exp_arg = -2.0*pi*(dn/dN)*di;  //   argument of the exponential
-	double real_n = cos(exp_arg);         //   real component of the exponential
-	double imag_n = sin(exp_arg);         //   imag component of the exponential
+    for (n = 0; n < N; n++) {             // FT block
+        double exp_arg = -2.0*pi*((double)n/dN)*di;  //   argument of the exponential
+        double real_n = cos(exp_arg);         //   real component of the exponential
+        double imag_n = sin(exp_arg);         //   imag component of the exponential
         ar += s[n]*real_n;                    //   accumulate
-	ai += s[n]*imag_n;                    //      "
+        ai += s[n]*imag_n;                    //      "
     }
-    printf ("\n\ncoefficient %d = (%lf, %lf).\n\n\n"), i, ar, ai); exit(0);
+    printf ("\ncoefficient %d = (%lf, %lf).\n\n\n", i, ar, ai); exit(0);
 }
 ```
 
